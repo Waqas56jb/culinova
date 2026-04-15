@@ -521,10 +521,7 @@ function scoreLead(lead) {
 // API ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+// ─── Health Check (see full route with env check near bottom) ─────────────────
 
 // ─── Chat Session: Start ──────────────────────────────────────────────────────
 app.post("/api/chat/session", async (req, res) => {
@@ -669,8 +666,13 @@ app.post("/api/chat/message", async (req, res) => {
 
     res.json({ reply, leadCaptured });
   } catch (err) {
-    console.error("Chat error:", err);
-    res.status(500).json({ error: "Failed to process message" });
+    console.error("Chat error:", err?.message || err);
+    // Return detailed error info to help debug (remove in strict production)
+    res.status(500).json({
+      error: "Failed to process message",
+      detail: err?.message,
+      type: err?.constructor?.name,
+    });
   }
 });
 
@@ -1248,41 +1250,66 @@ app.get("/api/admin/leads/export", authenticateAdmin, async (req, res) => {
   }
 });
 
-// ─── DB Keep-Alive (prevents Neon from sleeping during active use) ────────────
-setInterval(async () => {
-  try {
-    await query("SELECT 1");
-  } catch {
-    // Silent — pool will reconnect on next real query
-  }
-}, 4 * 60 * 1000); // ping every 4 minutes
+// ─── DB Keep-Alive (only in long-running process, not serverless) ─────────────
+if (process.env.VERCEL !== "1") {
+  setInterval(async () => {
+    try { await query("SELECT 1"); } catch { /* silent */ }
+  }, 4 * 60 * 1000);
+}
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
-async function startServer() {
-  // Retry DB init up to 3 times (handles Neon cold-start wakeup)
+// ─── Init DB on startup (lazy for serverless, eager for local) ───────────────
+let dbReady = false;
+async function ensureDb() {
+  if (dbReady) return;
   let retries = 3;
   while (retries > 0) {
     try {
       await initDatabase();
-      break;
+      dbReady = true;
+      return;
     } catch (err) {
       retries--;
       if (retries === 0) {
-        console.error("❌ Could not connect to database after 3 attempts:", err.message);
-        console.log("⚠️  Server starting without DB — check your DATABASE_URL in .env");
+        console.error("DB init failed:", err.message);
       } else {
-        console.log(`⚠️  DB connection failed, retrying in 3s... (${retries} left)`);
-        await new Promise((r) => setTimeout(r, 3000));
+        console.log(`DB retry... (${retries} left)`);
+        await new Promise((r) => setTimeout(r, 2000));
       }
     }
   }
+}
 
-  app.listen(PORT, () => {
-    console.log(`✅ Culinova API running on port ${PORT}`);
-    console.log(`📊 Admin: ${process.env.ADMIN_URL}`);
-    console.log(`💬 Client: ${process.env.CLIENT_URL}`);
+// ─── Health check also triggers DB init ───────────────────────────────────────
+app.get("/api/health", async (req, res) => {
+  await ensureDb();
+  res.json({
+    status: "ok",
+    db: dbReady,
+    env: {
+      openai: !!process.env.OPENAI_API_KEY,
+      db: !!process.env.DATABASE_URL,
+      email: !!process.env.EMAIL_APP_PASSWORD,
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ─── Local dev server start ───────────────────────────────────────────────────
+if (process.env.VERCEL !== "1") {
+  ensureDb().then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ Culinova API running on port ${PORT}`);
+      console.log(`📊 Admin: ${process.env.ADMIN_URL}`);
+      console.log(`💬 Client: ${process.env.CLIENT_URL}`);
+    });
   });
 }
 
-startServer().catch(console.error);
+// ─── Vercel serverless export ─────────────────────────────────────────────────
+// Vercel calls this on every request; DB init runs lazily on first hit
+if (process.env.VERCEL === "1") {
+  ensureDb().catch(console.error); // warm-up on cold start
+}
+
+module.exports = app;
 
