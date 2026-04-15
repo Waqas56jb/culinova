@@ -129,17 +129,6 @@ img { max-width: 100%; display: block; }
   .lp-mobile-nav { display: none !important; }
 }
 
-/* ─── Chat Widget Responsive ────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .chat-window {
-    width: 100vw !important;
-    height: 100dvh !important;
-    bottom: 0 !important;
-    right: 0 !important;
-    border-radius: 0 !important;
-  }
-  .chat-bubble {
-    bottom: 16px !important;
-    right: 16px !important;
-  }
-}
+/* ─── Chat Widget ───────────────────────────────────────────────────────────── */
+/* All chat-widget responsive logic is handled inline in ChatWidget.jsx
+   via the useIsMobile() hook to avoid CSS-vs-JS positioning conflicts. */
