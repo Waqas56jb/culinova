@@ -750,6 +750,12 @@ app.post("/api/leads", async (req, res) => {
   }
 });
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN ROUTES — temporarily disabled for debugging chat endpoint
+   Re-enable once chat is confirmed working
+   ═══════════════════════════════════════════════════════════════════════════ */
+/*
+
 // ─── Admin: Login ─────────────────────────────────────────────────────────────
 app.post("/api/admin/login", async (req, res) => {
   try {
@@ -1233,6 +1239,8 @@ app.get("/api/admin/leads/export", authenticateAdmin, async (req, res) => {
     res.status(500).json({ error: "Export failed" });
   }
 });
+
+*/ // ─── END ADMIN ROUTES (disabled for debugging) ───────────────────────────
 
 // ─── DB Keep-Alive (only in long-running process, not serverless) ─────────────
 if (process.env.VERCEL !== "1") {
