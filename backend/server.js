@@ -13,15 +13,37 @@ const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 const corsOptions = {
-  origin: "*",           // allow all — tighten after go-live
+  origin: "*",
   methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD",
   allowedHeaders: "Content-Type,Authorization,X-Requested-With,Accept",
-  credentials: false,    // must be false when origin is "*"
+  credentials: false,
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // explicit preflight handler for all routes
-app.use(express.json({ limit: "10mb" }));
+app.options("*", cors(corsOptions));
+
+// Custom body parser: Vercel serverless pre-parses req.body before our code runs.
+// Using express.json() on an already-consumed stream causes "Maximum call stack
+// size exceeded". This middleware skips parsing when body is already an object.
+app.use((req, res, next) => {
+  if (req.body !== undefined && req.body !== null) {
+    // Already parsed by Vercel runtime — nothing to do
+    return next();
+  }
+  // Local dev / non-serverless: parse the raw stream ourselves
+  let raw = "";
+  req.on("data", (chunk) => { raw += chunk; });
+  req.on("end", () => {
+    if (raw) {
+      try { req.body = JSON.parse(raw); }
+      catch { req.body = {}; }
+    } else {
+      req.body = {};
+    }
+    next();
+  });
+  req.on("error", () => { req.body = {}; next(); });
+});
 
 // ─── Database ──────────────────────────────────────────────────────────────────
 // Use POSTGRES_URL_NON_POOLING for direct, or DATABASE_URL for pooler endpoint
