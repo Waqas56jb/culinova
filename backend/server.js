@@ -34,17 +34,42 @@ const pool = new Pool({
   connectionString: dbUrl,
   ssl: isLocal ? false : { rejectUnauthorized: false },
   // Pool settings tuned for Neon/Vercel serverless Postgres
-  max: 3,                      // keep connections small
-  min: 0,                      // allow full scale-down
-  idleTimeoutMillis: 10000,    // release idle connections after 10s
-  connectionTimeoutMillis: 10000, // fail fast if can't connect in 10s
+  max: 3,
+  min: 0,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 15000,
   allowExitOnIdle: true,
+  // TCP keep-alive prevents silent connection drops
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
 });
 
 // Re-connect on unexpected errors instead of crashing
 pool.on("error", (err) => {
   console.error("Postgres pool error:", err.message);
 });
+
+// Auto-retry query once on connection errors (handles Neon wake-up drops)
+async function query(text, params) {
+  try {
+    return await query(text, params);
+  } catch (err) {
+    const retryable = ["ETIMEDOUT", "ECONNRESET", "ENOTFOUND", "EPIPE", "57P01"];
+    const shouldRetry =
+      retryable.includes(err.code) ||
+      (err.message && (
+        err.message.includes("Connection terminated") ||
+        err.message.includes("timeout") ||
+        err.message.includes("SSL")
+      ));
+    if (shouldRetry) {
+      console.log("DB query retry after:", err.code || err.message);
+      await new Promise((r) => setTimeout(r, 1500));
+      return await query(text, params);
+    }
+    throw err;
+  }
+}
 
 // ─── OpenAI ───────────────────────────────────────────────────────────────────
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -492,13 +517,13 @@ app.post("/api/chat/session", async (req, res) => {
       req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const userAgent = req.headers["user-agent"] || "";
 
-    await pool.query(
+    await query(
       `INSERT INTO chat_sessions (session_id, visitor_ip, user_agent) VALUES ($1, $2, $3)
        ON CONFLICT (session_id) DO NOTHING`,
       [sessionId, visitorIp, userAgent]
     );
 
-    await pool.query(
+    await query(
       `INSERT INTO visitor_analytics (session_id, event_type, event_data)
        VALUES ($1, 'chat_opened', $2)`,
       [sessionId, JSON.stringify({ ip: visitorIp })]
@@ -520,7 +545,7 @@ app.post("/api/chat/message", async (req, res) => {
     }
 
     // Get active knowledge base entries
-    const kbResult = await pool.query(
+    const kbResult = await query(
       "SELECT title, content FROM knowledge_base WHERE is_active = TRUE ORDER BY id"
     );
     const kbContext = kbResult.rows
@@ -528,7 +553,7 @@ app.post("/api/chat/message", async (req, res) => {
       .join("\n\n");
 
     // Get last 20 messages for memory
-    const historyResult = await pool.query(
+    const historyResult = await query(
       `SELECT role, content FROM chat_messages WHERE session_id = $1
        ORDER BY created_at DESC LIMIT 20`,
       [sessionId]
@@ -559,19 +584,19 @@ app.post("/api/chat/message", async (req, res) => {
     const reply = completion.choices[0].message.content;
 
     // Store messages
-    await pool.query(
+    await query(
       `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3), ($1, $4, $5)`,
       [sessionId, "user", message, "assistant", reply]
     );
 
     // Update session stats
-    await pool.query(
+    await query(
       `UPDATE chat_sessions SET last_active = NOW(), message_count = message_count + 1 WHERE session_id = $1`,
       [sessionId]
     );
 
     // Track analytics
-    await pool.query(
+    await query(
       `INSERT INTO visitor_analytics (session_id, event_type, event_data) VALUES ($1, 'message_sent', $2)`,
       [sessionId, JSON.stringify({ messageLength: message.length })]
     );
@@ -582,7 +607,7 @@ app.post("/api/chat/message", async (req, res) => {
 
     let leadCaptured = false;
     if (extracted.phone || extracted.email) {
-      const existingLead = await pool.query(
+      const existingLead = await query(
         "SELECT id FROM leads WHERE session_id = $1",
         [sessionId]
       );
@@ -593,7 +618,7 @@ app.post("/api/chat/message", async (req, res) => {
           lead_score: scoreLead(extracted),
           session_id: sessionId,
         };
-        const leadInsert = await pool.query(
+        const leadInsert = await query(
           `INSERT INTO leads (session_id, phone, email, project_type, budget, lead_score)
            VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [
@@ -607,12 +632,12 @@ app.post("/api/chat/message", async (req, res) => {
         );
         leadCaptured = true;
 
-        await pool.query(
+        await query(
           `UPDATE chat_sessions SET lead_captured = TRUE WHERE session_id = $1`,
           [sessionId]
         );
 
-        await pool.query(
+        await query(
           `INSERT INTO visitor_analytics (session_id, event_type, event_data) VALUES ($1, 'lead_captured', $2)`,
           [sessionId, JSON.stringify({ leadId: leadInsert.rows[0].id })]
         );
@@ -635,7 +660,7 @@ app.post("/api/chat/message", async (req, res) => {
 // ─── Chat: Get History ─────────────────────────────────────────────────────────
 app.get("/api/chat/history/:sessionId", async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await query(
       "SELECT role, content, created_at FROM chat_messages WHERE session_id = $1 ORDER BY created_at ASC",
       [req.params.sessionId]
     );
@@ -649,7 +674,7 @@ app.get("/api/chat/history/:sessionId", async (req, res) => {
 app.post("/api/chat/time", async (req, res) => {
   try {
     const { sessionId, seconds } = req.body;
-    await pool.query(
+    await query(
       "UPDATE chat_sessions SET time_spent_seconds = $1 WHERE session_id = $2",
       [seconds, sessionId]
     );
@@ -689,7 +714,7 @@ app.post("/api/leads", async (req, res) => {
     };
     const lead_score = scoreLead(leadData);
 
-    const result = await pool.query(
+    const result = await query(
       `INSERT INTO leads (session_id, name, email, phone, company, location, project_type,
         project_size, budget, timeline, quality_preference, message, lead_score)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
@@ -733,7 +758,7 @@ app.post("/api/leads", async (req, res) => {
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const result = await pool.query("SELECT * FROM admins WHERE email = $1", [
+    const result = await query("SELECT * FROM admins WHERE email = $1", [
       email,
     ]);
     if (result.rows.length === 0) {
@@ -762,7 +787,7 @@ app.post("/api/admin/login", async (req, res) => {
 app.post("/api/admin/change-password", authenticateAdmin, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const result = await pool.query("SELECT * FROM admins WHERE id = $1", [
+    const result = await query("SELECT * FROM admins WHERE id = $1", [
       req.admin.id,
     ]);
     const admin = result.rows[0];
@@ -770,7 +795,7 @@ app.post("/api/admin/change-password", authenticateAdmin, async (req, res) => {
     if (!valid) return res.status(401).json({ error: "Current password incorrect" });
 
     const hash = await bcrypt.hash(newPassword, 12);
-    await pool.query("UPDATE admins SET password_hash = $1 WHERE id = $2", [
+    await query("UPDATE admins SET password_hash = $1 WHERE id = $2", [
       hash,
       req.admin.id,
     ]);
@@ -784,7 +809,7 @@ app.post("/api/admin/change-password", authenticateAdmin, async (req, res) => {
 app.post("/api/admin/reset-password-request", async (req, res) => {
   try {
     const { email } = req.body;
-    const result = await pool.query("SELECT * FROM admins WHERE email = $1", [
+    const result = await query("SELECT * FROM admins WHERE email = $1", [
       email,
     ]);
     if (result.rows.length === 0) {
@@ -792,7 +817,7 @@ app.post("/api/admin/reset-password-request", async (req, res) => {
     }
     const token = uuidv4();
     const expires = new Date(Date.now() + 3600000); // 1 hour
-    await pool.query(
+    await query(
       "UPDATE admins SET reset_token = $1, reset_token_expires = $2 WHERE email = $3",
       [token, expires, email]
     );
@@ -816,7 +841,7 @@ app.post("/api/admin/reset-password-request", async (req, res) => {
 app.post("/api/admin/reset-password", async (req, res) => {
   try {
     const { token, newPassword } = req.body;
-    const result = await pool.query(
+    const result = await query(
       "SELECT * FROM admins WHERE reset_token = $1 AND reset_token_expires > NOW()",
       [token]
     );
@@ -824,7 +849,7 @@ app.post("/api/admin/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired reset token" });
     }
     const hash = await bcrypt.hash(newPassword, 12);
-    await pool.query(
+    await query(
       "UPDATE admins SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2",
       [hash, result.rows[0].id]
     );
@@ -853,44 +878,44 @@ app.get("/api/admin/dashboard", authenticateAdmin, async (req, res) => {
       recentLeads,
       knowledgeBaseCount,
     ] = await Promise.all([
-      pool.query("SELECT COUNT(*) FROM leads"),
-      pool.query("SELECT COUNT(*) FROM leads WHERE lead_score = 'hot'"),
-      pool.query("SELECT COUNT(*) FROM leads WHERE lead_score = 'warm'"),
-      pool.query("SELECT COUNT(*) FROM leads WHERE lead_score = 'cold'"),
-      pool.query("SELECT COUNT(*) FROM chat_sessions"),
-      pool.query(
+      query("SELECT COUNT(*) FROM leads"),
+      query("SELECT COUNT(*) FROM leads WHERE lead_score = 'hot'"),
+      query("SELECT COUNT(*) FROM leads WHERE lead_score = 'warm'"),
+      query("SELECT COUNT(*) FROM leads WHERE lead_score = 'cold'"),
+      query("SELECT COUNT(*) FROM chat_sessions"),
+      query(
         "SELECT COUNT(*) FROM chat_sessions WHERE started_at >= NOW() - INTERVAL '24 hours'"
       ),
-      pool.query(
+      query(
         "SELECT COUNT(*) FROM leads WHERE created_at >= NOW() - INTERVAL '24 hours'"
       ),
-      pool.query(
+      query(
         "SELECT AVG(message_count) as avg FROM chat_sessions WHERE message_count > 0"
       ),
-      pool.query(`
+      query(`
         SELECT DATE(created_at) as date, COUNT(*) as count
         FROM leads WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY DATE(created_at) ORDER BY date ASC
       `),
-      pool.query(`
+      query(`
         SELECT DATE(started_at) as date, COUNT(*) as count
         FROM chat_sessions WHERE started_at >= NOW() - INTERVAL '30 days'
         GROUP BY DATE(started_at) ORDER BY date ASC
       `),
-      pool.query(`
+      query(`
         SELECT project_type, COUNT(*) as count FROM leads
         WHERE project_type IS NOT NULL
         GROUP BY project_type ORDER BY count DESC LIMIT 5
       `),
-      pool.query(`
+      query(`
         SELECT 
           COUNT(CASE WHEN lead_captured = TRUE THEN 1 END)::float / NULLIF(COUNT(*), 0) * 100 as rate
         FROM chat_sessions
       `),
-      pool.query(
+      query(
         "SELECT * FROM leads ORDER BY created_at DESC LIMIT 5"
       ),
-      pool.query(
+      query(
         "SELECT COUNT(*) FROM knowledge_base WHERE is_active = TRUE"
       ),
     ]);
@@ -947,13 +972,13 @@ app.get("/api/admin/leads", authenticateAdmin, async (req, res) => {
       paramIdx++;
     }
 
-    const countResult = await pool.query(
+    const countResult = await query(
       `SELECT COUNT(*) FROM leads ${where}`,
       params
     );
     const total = parseInt(countResult.rows[0].count);
 
-    const result = await pool.query(
+    const result = await query(
       `SELECT * FROM leads ${where} ORDER BY created_at DESC LIMIT $${paramIdx} OFFSET $${
         paramIdx + 1
       }`,
@@ -971,7 +996,7 @@ app.get("/api/admin/leads", authenticateAdmin, async (req, res) => {
 app.patch("/api/admin/leads/:id", authenticateAdmin, async (req, res) => {
   try {
     const { status, notes, name, phone, email, lead_score } = req.body;
-    await pool.query(
+    await query(
       `UPDATE leads SET status = COALESCE($1, status), notes = COALESCE($2, notes),
        name = COALESCE($3, name), phone = COALESCE($4, phone),
        email = COALESCE($5, email), lead_score = COALESCE($6, lead_score),
@@ -987,7 +1012,7 @@ app.patch("/api/admin/leads/:id", authenticateAdmin, async (req, res) => {
 // ─── Admin: Delete Lead ───────────────────────────────────────────────────────
 app.delete("/api/admin/leads/:id", authenticateAdmin, async (req, res) => {
   try {
-    await pool.query("DELETE FROM leads WHERE id = $1", [req.params.id]);
+    await query("DELETE FROM leads WHERE id = $1", [req.params.id]);
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete lead" });
@@ -1000,8 +1025,8 @@ app.get("/api/admin/sessions", authenticateAdmin, async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    const total = await pool.query("SELECT COUNT(*) FROM chat_sessions");
-    const result = await pool.query(
+    const total = await query("SELECT COUNT(*) FROM chat_sessions");
+    const result = await query(
       `SELECT cs.*, 
         (SELECT COUNT(*) FROM chat_messages WHERE session_id = cs.session_id) as actual_messages
        FROM chat_sessions cs ORDER BY started_at DESC LIMIT $1 OFFSET $2`,
@@ -1021,7 +1046,7 @@ app.get("/api/admin/sessions", authenticateAdmin, async (req, res) => {
 // ─── Admin: Session Messages ──────────────────────────────────────────────────
 app.get("/api/admin/sessions/:sessionId/messages", authenticateAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await query(
       "SELECT * FROM chat_messages WHERE session_id = $1 ORDER BY created_at ASC",
       [req.params.sessionId]
     );
@@ -1045,42 +1070,42 @@ app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
       topLocations,
       messageStats,
     ] = await Promise.all([
-      pool.query(`
+      query(`
         SELECT DATE(started_at) as date, COUNT(*) as visitors,
           SUM(CASE WHEN lead_captured THEN 1 ELSE 0 END) as leads
         FROM chat_sessions
         WHERE started_at >= NOW() - INTERVAL '${parseInt(range)} days'
         GROUP BY DATE(started_at) ORDER BY date ASC
       `),
-      pool.query(`
+      query(`
         SELECT DATE(created_at) as date, lead_score, COUNT(*) as count
         FROM leads
         WHERE created_at >= NOW() - INTERVAL '${parseInt(range)} days'
         GROUP BY DATE(created_at), lead_score ORDER BY date ASC
       `),
-      pool.query(`
+      query(`
         SELECT EXTRACT(HOUR FROM started_at) as hour, COUNT(*) as count
         FROM chat_sessions
         WHERE started_at >= NOW() - INTERVAL '${parseInt(range)} days'
         GROUP BY hour ORDER BY hour ASC
       `),
-      pool.query(`
+      query(`
         SELECT language, COUNT(*) as count FROM chat_sessions
         WHERE started_at >= NOW() - INTERVAL '${parseInt(range)} days'
         GROUP BY language ORDER BY count DESC
       `),
-      pool.query(`
+      query(`
         SELECT AVG(time_spent_seconds) as avg_seconds FROM chat_sessions
         WHERE time_spent_seconds > 0
         AND started_at >= NOW() - INTERVAL '${parseInt(range)} days'
       `),
-      pool.query(`
+      query(`
         SELECT location, COUNT(*) as count FROM leads
         WHERE location IS NOT NULL
         AND created_at >= NOW() - INTERVAL '${parseInt(range)} days'
         GROUP BY location ORDER BY count DESC LIMIT 10
       `),
-      pool.query(`
+      query(`
         SELECT 
           COUNT(*) as total_messages,
           AVG(message_count) as avg_per_session,
@@ -1108,7 +1133,7 @@ app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
 // ─── Admin: Knowledge Base CRUD ───────────────────────────────────────────────
 app.get("/api/admin/knowledge-base", authenticateAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await query(
       "SELECT * FROM knowledge_base ORDER BY id ASC"
     );
     res.json({ entries: result.rows });
@@ -1120,7 +1145,7 @@ app.get("/api/admin/knowledge-base", authenticateAdmin, async (req, res) => {
 app.post("/api/admin/knowledge-base", authenticateAdmin, async (req, res) => {
   try {
     const { title, content, category } = req.body;
-    const result = await pool.query(
+    const result = await query(
       "INSERT INTO knowledge_base (title, content, category) VALUES ($1, $2, $3) RETURNING *",
       [title, content, category || "general"]
     );
@@ -1133,7 +1158,7 @@ app.post("/api/admin/knowledge-base", authenticateAdmin, async (req, res) => {
 app.patch("/api/admin/knowledge-base/:id", authenticateAdmin, async (req, res) => {
   try {
     const { title, content, category, is_active } = req.body;
-    const result = await pool.query(
+    const result = await query(
       `UPDATE knowledge_base SET 
         title = COALESCE($1, title),
         content = COALESCE($2, content),
@@ -1151,7 +1176,7 @@ app.patch("/api/admin/knowledge-base/:id", authenticateAdmin, async (req, res) =
 
 app.delete("/api/admin/knowledge-base/:id", authenticateAdmin, async (req, res) => {
   try {
-    await pool.query("DELETE FROM knowledge_base WHERE id = $1", [
+    await query("DELETE FROM knowledge_base WHERE id = $1", [
       req.params.id,
     ]);
     res.json({ success: true });
@@ -1163,7 +1188,7 @@ app.delete("/api/admin/knowledge-base/:id", authenticateAdmin, async (req, res) 
 // ─── Admin: Export Leads CSV ───────────────────────────────────────────────────
 app.get("/api/admin/leads/export", authenticateAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await query(
       "SELECT * FROM leads ORDER BY created_at DESC"
     );
     const headers = [
@@ -1209,7 +1234,7 @@ app.get("/api/admin/leads/export", authenticateAdmin, async (req, res) => {
 // ─── DB Keep-Alive (prevents Neon from sleeping during active use) ────────────
 setInterval(async () => {
   try {
-    await pool.query("SELECT 1");
+    await query("SELECT 1");
   } catch {
     // Silent — pool will reconnect on next real query
   }
@@ -1243,3 +1268,4 @@ async function startServer() {
 }
 
 startServer().catch(console.error);
+

@@ -34,7 +34,7 @@ const styles = {
   },
   heroBg: {
     position: "absolute", inset: 0,
-    background: `url('https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&q=80') center/cover no-repeat`,
+    background: `url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat`,
     opacity: 0.15,
   },
   heroOverlay: {
@@ -464,9 +464,11 @@ export default function LandingPage() {
 
             <div style={styles.aboutImage}>
               <img
-                src="https://images.unsplash.com/photo-1556909045-75d69d4a7ae5?w=700&q=80"
+                src="https://images.unsplash.com/photo-1581299894007-aaa50297cf16?auto=format&fit=crop&w=700&h=480&q=80"
                 alt="Commercial Kitchen"
                 style={{ width: "100%", height: 480, objectFit: "cover" }}
+                referrerPolicy="no-referrer"
+                loading="lazy"
               />
               <div
                 style={{
@@ -587,22 +589,22 @@ export default function LandingPage() {
           >
             {[
               {
-                url: "https://images.unsplash.com/photo-1556909045-75d69d4a7ae5?w=600&q=80",
+                url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=280&q=80",
                 label: "5-Star Hotel Kitchen",
                 location: "Riyadh, Saudi Arabia",
               },
               {
-                url: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80",
+                url: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&h=280&q=80",
                 label: "Fine Dining Restaurant",
                 location: "Jeddah, Saudi Arabia",
               },
               {
-                url: "https://images.unsplash.com/photo-1584949091598-c31daaaa4aa9?w=600&q=80",
+                url: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&h=280&q=80",
                 label: "Hospital Central Kitchen",
                 location: "Dammam, Saudi Arabia",
               },
               {
-                url: "https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=600&q=80",
+                url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&h=280&q=80",
                 label: "Commercial Laundry Facility",
                 location: "Riyadh, Saudi Arabia",
               },
@@ -612,6 +614,7 @@ export default function LandingPage() {
                 style={{
                   borderRadius: 8, overflow: "hidden", position: "relative",
                   height: 280, cursor: "pointer",
+                  background: "#1a1a1a",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.querySelector(
@@ -627,7 +630,14 @@ export default function LandingPage() {
                 <img
                   src={p.url}
                   alt={p.label}
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                    e.target.parentElement.style.background =
+                      "linear-gradient(135deg, #1a1a1a, #2d2d2d)";
+                  }}
                 />
                 <div
                   className="overlay"
