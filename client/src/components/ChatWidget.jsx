@@ -62,7 +62,7 @@ export default function ChatWidget() {
         {
           role: "assistant",
           content:
-            "Welcome to **Culinova**! 👋\n\nI'm your AI design consultant, specialized in commercial kitchen and laundry projects across Saudi Arabia.\n\nAre you planning a new project? Tell me — are you looking for a:\n\n🍽️ **Restaurant kitchen**\n🏨 **Hotel kitchen**\n🏥 **Hospital kitchen**\n🧺 **Commercial laundry**\n🏫 **School / cafeteria**\n\nOr describe your project and let's get started!",
+            "Hello! 👋 Welcome to **Culinova** — Saudi Arabia's leading commercial kitchen & laundry design experts.\n\nWhat kind of project are you planning?",
           time: new Date().toLocaleTimeString("en-SA", {
             hour: "2-digit",
             minute: "2-digit",
@@ -162,11 +162,12 @@ export default function ChatWidget() {
   };
 
   const quickReplies = [
-    "I need a restaurant kitchen",
-    "Hotel kitchen project",
-    "Commercial laundry",
-    "Free consultation",
-    "Equipment cost estimate",
+    "🍽️ Restaurant kitchen",
+    "🏨 Hotel kitchen",
+    "🏥 Hospital kitchen",
+    "🧺 Commercial laundry",
+    "🏫 School / cafeteria",
+    "💰 Get price estimate",
   ];
 
   return (

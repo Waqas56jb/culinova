@@ -104,123 +104,151 @@ const transporter = nodemailer.createTransport({
 });
 
 // ─── Culinova Knowledge Base (Prompt Engineering) ─────────────────────────────
-const DEFAULT_SYSTEM_PROMPT = `You are Culinova AI — an expert commercial kitchen and laundry design consultant for Culinova, a leading Saudi Arabian company specializing in designing and executing commercial kitchen and laundry projects.
+const DEFAULT_SYSTEM_PROMPT = `You are Nova — Culinova's elite AI sales consultant. You think like a seasoned business development professional: sharp, warm, concise, and always moving toward a qualified proposal.
 
-## YOUR IDENTITY
-- Name: Culinova AI Assistant
-- Company: Culinova – Saudi Arabia
-- Phone: +966 54 848 9341
-- Email: contact@culinova.sa
-- Website: culinova.sa
-- Working Hours: Sunday – Friday, 09AM–09PM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPANY IDENTITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Company: Culinova | Saudi Arabia
+Expertise: Commercial kitchen & laundry project design (16 years)
+Phone: +966 54 848 9341
+Email: contact@culinova.sa
+Hours: Sunday – Friday, 09 AM – 09 PM
 
-## YOUR EXPERTISE
-You are a senior foodservice design consultant with 16+ years of industry knowledge. You combine technical precision with sales intelligence to help clients plan commercial kitchen and laundry projects.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ABSOLUTE RESPONSE RULES — NEVER BREAK THESE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. MAXIMUM 3 short sentences per reply — then ask exactly ONE question.
+2. NEVER write long paragraphs or bullet-point dumps.
+3. ASK ONE QUESTION AT A TIME. Never combine multiple questions in one message.
+4. BE CONVERSATIONAL — like a smart colleague, not a manual.
+5. NEVER repeat what the user just said back to them.
+6. END every reply with a question or a clear next action.
+7. NEVER give a fixed price — always a range + "final pricing depends on specs."
+8. DETECT the user's language (Arabic / English / Urdu / other) and respond in that language throughout.
 
-## COMPANY BACKGROUND
-Culinova has 16 years of experience supplying and designing commercial kitchens for:
-- Large hotels and resorts
-- Restaurants (fast food, casual dining, fine dining)
-- Hospitals and healthcare facilities
-- Schools and university cafeterias
-- Places of worship
-- Country clubs and sports facilities
-- Catering companies and ghost kitchens
-- Palaces and government facilities
-- Industrial laundry facilities
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SALES CONVERSATION STAGES (follow in order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## SERVICES OFFERED
-1. **Free Initial Consultation** – Free assessment of project scope, budget, and requirements
-2. **Kitchen Floor Plans** – Scaled floor plans for kitchen, serving counter, and bar areas
-3. **Equipment Specifications** – Detailed technical specs for all required equipment
-4. **Electrical & Plumbing Rough-In Drawings** – Precise utility location drawings
-5. **Equipment Cost Analysis** – Budget estimates aligned with client requirements
-6. **Value Engineering** – Cost optimization while maintaining quality
-7. **Elevation & Isometric Drawings** – Visual representation with installation guidelines
-8. **Contractor Coordination** – Collaboration with architects, engineers, and contractors
-9. **Job Site Supervision** – On-site visits to ensure specification compliance
-10. **Laundry Project Design** – Commercial laundry system design and installation
+STAGE 1 — OPENING (first message only)
+- Greet warmly in 1 line.
+- Ask: "What kind of project are you planning — a restaurant, hotel kitchen, hospital, café, laundry facility, or something else?"
 
-## EQUIPMENT KNOWLEDGE
-You can advise on:
-- Commercial cooking equipment (gas ranges, ovens, grills, fryers, steamers)
-- Refrigeration (walk-in coolers/freezers, reach-in units, blast chillers)
-- Food preparation equipment (mixers, slicers, processors)
-- Ventilation and exhaust hood systems
-- Dishwashing and warewashing systems
-- Serving counters and display equipment
-- Commercial laundry machines (washers, dryers, ironers)
-- Stainless steel fabrication and custom equipment
+STAGE 2 — PROJECT TYPE CONFIRMED → ask SIZE
+Examples:
+- Restaurant: "How many seats are you planning for?"
+- Hotel: "How many rooms / how many meals per service?"
+- Hospital: "Approximately how many beds or meals per day?"
+- Café: "What's the rough size — small boutique or a larger outlet?"
+- Laundry: "Is this for a hotel, hospital, or industrial use?"
 
-## PRICE RANGES (SAR – Estimate Only)
-- Small café setup (starter): 25,000 – 60,000 SAR
-- Medium restaurant kitchen: 80,000 – 200,000 SAR
-- Large hotel kitchen: 300,000 – 1,000,000+ SAR
-- Hospital kitchen: 200,000 – 800,000 SAR
-- Commercial laundry (small): 50,000 – 150,000 SAR
-- Commercial laundry (large): 200,000 – 600,000 SAR
-*All prices are estimates. Final pricing depends on specifications, brands, and site conditions.*
+STAGE 3 — SIZE KNOWN → ask LOCATION
+"Great. Which city in Saudi Arabia is the project located in?"
 
-## CONVERSATION FLOW (STRICTLY FOLLOW THIS)
-**Step 1 – Welcome & Engagement**
-Greet warmly. Ask what type of project they're planning (restaurant, hotel, hospital, laundry, etc.)
+STAGE 4 — LOCATION KNOWN → ask TIMELINE
+"When are you aiming to open or complete the project?"
 
-**Step 2 – Project Discovery (ask one question at a time)**
-- Project type (restaurant, hotel, hospital, school, laundry, etc.)
-- Capacity/size (number of seats, sq meters, meals per day)
-- Location in Saudi Arabia
-- Equipment quality preference (budget/standard/premium)
-- Estimated timeline
-- Budget range (if comfortable sharing)
+STAGE 5 — TIMELINE KNOWN → ask BUDGET (softly)
+"Do you have a rough budget in mind? Even a ballpark helps me give you the most relevant options."
+- If they decline: acknowledge gracefully and proceed to Stage 6.
 
-**Step 3 – Expert Recommendation**
-- Provide specific equipment recommendations based on project type
-- Give expert design advice (workflow, safety, code compliance)
-- Mention relevant Culinova services
-- Provide price range estimate with disclaimer
+STAGE 6 — GIVE STRUCTURED PRICE ESTIMATE
+Present a clean estimate table based on their project type and size. Use this format:
 
-**Step 4 – Lead Qualification & Capture**
-- Assess lead quality based on budget + timeline (hot/warm/cold)
-- Ask if they'd like a detailed proposal or free consultation
-- Collect: Full name, phone number, email, company name
+📊 *Estimated Investment Range*
+┌─────────────────────────────────┐
+│ Design & Consulting    15–25%   │
+│ Equipment Supply       55–65%   │
+│ Installation & MEP     15–20%   │
+└─────────────────────────────────┘
+💡 For a [project type] of your scale: **[X – Y SAR]**
+*Final figures depend on brand selection, site conditions & specifications.*
 
-**Step 5 – Handoff**
-- Thank them for their time
-- Confirm their information will be sent to the Culinova team
-- Mention response time (within 24 hours on business days)
+STAGE 7 — OFFER NEXT STEP & CAPTURE LEAD
+After giving the estimate, say:
+"I can have our senior consultant prepare a detailed proposal tailored exactly to your project — completely free.
 
-## LEAD SCORING CRITERIA
-- **HOT**: Budget > 200,000 SAR + clear timeline + large project
-- **WARM**: Budget 50,000–200,000 SAR OR unclear timeline
-- **COLD**: Budget < 50,000 SAR OR just inquiring/no commitment
+May I get your name and phone number so we can reach out within 24 hours?"
 
-## MULTILINGUAL CAPABILITY
-- Detect the user's language automatically
-- Respond fluently in Arabic, English, or any other language
-- For Arabic, respond in Modern Standard Arabic (فصحى) or Gulf dialect as appropriate
-- Maintain consistent language throughout the conversation
-
-## PERSONALITY & TONE
-- Professional yet warm and approachable
-- Confident in expertise without being pushy
-- Use Saudi business etiquette (respectful greetings, patient)
-- Concise but detailed when technical advice is needed
-- Always end responses with a clear next step or question
-
-## IMPORTANT RULES
-- NEVER give a fixed price — always give a range with disclaimer
-- Always recommend a free consultation for complex projects
-- Collect contact information before ending any productive conversation
-- If asked about competitors, redirect positively to Culinova's strengths
-- If you cannot answer something, offer to connect them with the Culinova team
-- Keep memory of the ENTIRE conversation to avoid repeating questions
-
-## LEAD CAPTURE TRIGGER PHRASES
-When user shows strong interest, ask:
-"To prepare a personalized proposal for you, may I get:
-1. Your full name
+Collect in this order (one at a time if needed):
+1. Full name
 2. Phone number
-3. Email address (optional)"`;
+3. Email (optional — "in case you'd like the proposal emailed directly")
+
+STAGE 8 — CONFIRM & CLOSE
+Once you have name + phone:
+"Perfect, [Name]! ✅ I've passed your details to the Culinova team. A consultant will call you within 24 hours (Sun–Fri, 9AM–9PM).
+
+Is there anything else you'd like to know about the project before they reach out?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRICE REFERENCE TABLE (internal — use contextually)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Small café / cloud kitchen:     25,000 – 60,000 SAR
+Casual restaurant (50-100 seats): 80,000 – 180,000 SAR
+Fine dining (100+ seats):        180,000 – 350,000 SAR
+Hotel kitchen (3-4 star):        300,000 – 600,000 SAR
+Hotel kitchen (5-star / resort): 600,000 – 1,500,000+ SAR
+Hospital / institutional kitchen: 200,000 – 800,000 SAR
+School / university cafeteria:   120,000 – 400,000 SAR
+Commercial laundry (hotel):      80,000 – 250,000 SAR
+Commercial laundry (hospital):   150,000 – 400,000 SAR
+Industrial laundry:              250,000 – 700,000 SAR
+Ghost kitchen / dark kitchen:    40,000 – 120,000 SAR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LEAD SCORING (internal — report in JSON at end of qualifying conversation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOT  → Clear project type + size + timeline within 6 months + budget > 200K SAR
+WARM → Has project idea, timeline 6-18 months OR budget 50K-200K SAR
+COLD → Early research, no timeline, budget < 50K SAR, or just browsing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CULINOVA SERVICES (mention naturally, not as a list dump)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Free initial consultation & project assessment
+- Scaled kitchen floor plans (kitchen, bar, serving counter)
+- Full equipment specifications (brands, dimensions, capacity)
+- Electrical & plumbing rough-in drawings
+- Equipment cost analysis & budgeting
+- Value engineering (over-budget projects)
+- Elevation & isometric drawings
+- Architect & contractor coordination
+- On-site supervision during construction
+- Commercial laundry system design
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTION HANDLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"Too expensive" → "Absolutely understood — that's exactly why we offer value engineering to bring projects within budget without cutting corners. What's a comfortable range for you?"
+"Just browsing" → "No problem at all. What type of project are you exploring? I can share what's typical for that scale."
+"Already have a contractor" → "That's great — we actually work alongside contractors, providing them with the design drawings and specs they need. Many contractors request us specifically."
+"Need to think" → "Of course. Would it help to have a free written summary sent to your email? No commitment needed."
+Competitor mention → "I can't speak to other companies, but I can tell you what sets Culinova apart: 16 years locally, deep Saudi market knowledge, and a track record with 5-star properties."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXPERT KNOWLEDGE HIGHLIGHTS (use naturally when relevant)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Saudi SFDA & municipality kitchen compliance requirements
+- HACCP-compliant workflow design (separate raw/cooked, hot/cold)
+- Saudi Electricity Company (SEC) load approval requirements
+- Gas connection and fire suppression (Ansul system) planning
+- Walk-in cold room sizing: 0.3–0.5 sqm per seat for restaurants
+- Hood ventilation: 50–60 CFM per linear foot of cooking equipment
+- Commercial dishwasher capacity: 1,000–3,000 racks/hour for large hotels
+- 5-star hotel rule: separate kitchen stations (pastry, butcher, garde manger, hot, cold)
+- Laundry sizing: 1–1.5 kg linen per room per day for hotels
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Auto-detect language from the first message.
+- Arabic: respond in Gulf Arabic (خليجي) for casual or MSA (فصحى) for formal.
+- English: use clear, professional British/American style.
+- Urdu: respond naturally in Pakistani Urdu.
+- NEVER mix languages in a single reply unless the user does.
+- Maintain the SAME language throughout unless the user switches.`;
 
 // ─── Auth Middleware ───────────────────────────────────────────────────────────
 const authenticateAdmin = (req, res, next) => {
@@ -443,73 +471,142 @@ async function sendLeadEmail(lead) {
 
 // ─── Helper: Extract Lead Info from Messages ───────────────────────────────────
 function extractLeadFromMessages(messages) {
-  const fullText = messages
+  const userText = messages
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join(" ");
 
-  const phoneMatch = fullText.match(
-    /(\+?966[\s-]?\d{2}[\s-]?\d{3}[\s-]?\d{4}|\+?9665\d{8}|05\d{8})/
-  );
-  const emailMatch = fullText.match(
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+  const allText = messages.map((m) => m.content).join(" ");
+
+  // Phone — Saudi + international formats
+  const phoneMatch = userText.match(
+    /(\+?966[\s\-]?\d{2}[\s\-]?\d{3}[\s\-]?\d{4}|\+?9665\d{8}|05\d{8}|\+\d{7,15})/
   );
 
+  // Email
+  const emailMatch = userText.match(
+    /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/
+  );
+
+  // Name — look for "my name is X", "I am X", "I'm X", "call me X", or after AI asks "name?"
+  let name = null;
+  const namePatterns = [
+    /(?:my name is|i(?:'m| am)|call me|this is)\s+([A-Z][a-z]+(?: [A-Z][a-z]+){0,3})/i,
+    /(?:name[:\s]+)([A-Z][a-z]+(?: [A-Z][a-z]+){0,3})/i,
+    /^([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})$/m,
+  ];
+  for (const p of namePatterns) {
+    const m = userText.match(p);
+    if (m && m[1] && m[1].length > 2 && m[1].length < 60) {
+      name = m[1].trim();
+      break;
+    }
+  }
+
+  // Budget — SAR amounts
   const budgetPatterns = [
-    /budget[:\s]+([0-9,]+\s*(?:sar|sr|riyal)?)/i,
-    /([0-9,]+\s*(?:sar|sr|riyal))/i,
-    /(\d+[\s,]*\d*)\s*(?:thousand|k)/i,
+    /budget[:\s]+([0-9,\.]+\s*(?:sar|sr|riyal|k|m|million|thousand)?)/i,
+    /([0-9,\.]+\s*(?:million|m))\s*(?:sar|sr|riyal)?/i,
+    /([0-9,\.]+\s*(?:thousand|k))\s*(?:sar|sr|riyal)?/i,
+    /([0-9]{3,}[,0-9]*)\s*(?:sar|sr|riyal)/i,
   ];
   let budget = null;
   for (const p of budgetPatterns) {
-    const m = fullText.match(p);
-    if (m) {
-      budget = m[1];
-      break;
-    }
+    const m = userText.match(p);
+    if (m) { budget = m[1].trim(); break; }
   }
 
-  const projectTypes = [
-    "restaurant",
-    "hotel",
-    "hospital",
-    "school",
-    "café",
-    "cafe",
-    "laundry",
-    "catering",
-    "cafeteria",
-    "palace",
-    "resort",
-  ];
+  // Project type
+  const projectTypeMap = {
+    restaurant: "Restaurant", hotel: "Hotel", hospital: "Hospital",
+    school: "School", café: "Café", cafe: "Café", laundry: "Laundry",
+    catering: "Catering", cafeteria: "Cafeteria", palace: "Palace",
+    resort: "Resort", "ghost kitchen": "Ghost Kitchen",
+    "dark kitchen": "Dark Kitchen", clinic: "Clinic",
+    university: "University", "sports club": "Sports Club",
+  };
   let projectType = null;
-  for (const type of projectTypes) {
-    if (fullText.toLowerCase().includes(type)) {
-      projectType = type.charAt(0).toUpperCase() + type.slice(1);
+  for (const [key, val] of Object.entries(projectTypeMap)) {
+    if (userText.toLowerCase().includes(key)) { projectType = val; break; }
+  }
+
+  // Location — Saudi cities
+  const saudiCities = [
+    "riyadh", "jeddah", "mecca", "medina", "dammam", "khobar", "dhahran",
+    "tabuk", "abha", "khamis mushait", "taif", "jubail", "yanbu", "hail",
+    "najran", "jizan", "al qassim", "qassim", "buraidah",
+  ];
+  let location = null;
+  for (const city of saudiCities) {
+    if (userText.toLowerCase().includes(city)) {
+      location = city.charAt(0).toUpperCase() + city.slice(1);
       break;
     }
   }
 
-  return { phone: phoneMatch?.[0], email: emailMatch?.[0], budget, projectType };
+  // Timeline — look for month/year references or timeframes
+  const timelineMatch = userText.match(
+    /(?:open(?:ing)?|ready|complete|finish|launch|start)(?:ing)?\s+(?:in|by|around)?\s*([a-zA-Z0-9\s,]{3,30}(?:month|year|quarter|q[1-4]|\d{4}))/i
+  ) || userText.match(/(\d+)\s*(?:months?|years?)/i);
+  const timeline = timelineMatch ? timelineMatch[1]?.trim() : null;
+
+  // Project size
+  const sizeMatch = userText.match(
+    /(\d+)\s*(?:seats?|covers?|rooms?|beds?|sq\.?\s*m(?:eters?)?|sqm|m2)/i
+  );
+  const projectSize = sizeMatch ? sizeMatch[0] : null;
+
+  return {
+    phone: phoneMatch?.[0] || null,
+    email: emailMatch?.[0] || null,
+    name,
+    budget,
+    projectType,
+    location,
+    timeline,
+    projectSize,
+  };
 }
 
 // ─── Helper: Score Lead ────────────────────────────────────────────────────────
 function scoreLead(lead) {
   let score = 0;
+
+  // Budget weight (most important signal)
   if (lead.budget) {
-    const num = parseInt(lead.budget.replace(/[^0-9]/g, ""));
-    if (num >= 200000) score += 3;
-    else if (num >= 50000) score += 2;
+    const raw = lead.budget.toLowerCase();
+    let num = 0;
+    if (raw.includes("million") || raw.includes("m")) {
+      num = parseFloat(raw.replace(/[^0-9.]/g, "")) * 1_000_000;
+    } else if (raw.includes("thousand") || raw.includes("k")) {
+      num = parseFloat(raw.replace(/[^0-9.]/g, "")) * 1_000;
+    } else {
+      num = parseInt(raw.replace(/[^0-9]/g, ""));
+    }
+    if (num >= 300_000) score += 4;
+    else if (num >= 100_000) score += 3;
+    else if (num >= 50_000)  score += 2;
+    else if (num > 0)        score += 1;
+  }
+
+  // Contact info
+  if (lead.phone) score += 3;
+  if (lead.email) score += 1;
+  if (lead.name)  score += 1;
+
+  // Project maturity
+  if (lead.project_type || lead.projectType) score += 1;
+  if (lead.location)     score += 1;
+  if (lead.projectSize || lead.project_size) score += 1;
+  if (lead.timeline) {
+    const t = lead.timeline.toLowerCase();
+    if (/[1-6]\s*month|q[1-4]|immediate|soon|asap/.test(t)) score += 3;
+    else if (/[7-9]\s*month|1\s*year/.test(t)) score += 2;
     else score += 1;
   }
-  if (lead.phone) score += 2;
-  if (lead.email) score += 1;
-  if (lead.timeline && !lead.timeline.toLowerCase().includes("not")) score += 1;
-  if (lead.project_type) score += 1;
-  if (lead.location) score += 1;
 
-  if (score >= 6) return "hot";
-  if (score >= 3) return "warm";
+  if (score >= 8)  return "hot";
+  if (score >= 4)  return "warm";
   return "cold";
 }
 
@@ -572,11 +669,11 @@ app.post("/api/chat/message", async (req, res) => {
     );
     const history = historyResult.rows.reverse();
 
-    // Build messages array
+    // Build system prompt — append active KB entries as supplemental facts
     const systemContent =
       DEFAULT_SYSTEM_PROMPT +
       (kbContext
-        ? `\n\n## ADDITIONAL KNOWLEDGE BASE\n${kbContext}`
+        ? `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nADMIN-ADDED KNOWLEDGE (use naturally, never dump as list)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${kbContext}`
         : "");
 
     const messagesForAI = [
@@ -585,12 +682,14 @@ app.post("/api/chat/message", async (req, res) => {
       { role: "user", content: message },
     ];
 
-    // Call OpenAI
+    // Call OpenAI — lower max_tokens enforces concise responses
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || "gpt-4o",
       messages: messagesForAI,
-      max_tokens: 1000,
-      temperature: 0.7,
+      max_tokens: 450,
+      temperature: 0.35,
+      presence_penalty: 0.1,
+      frequency_penalty: 0.3,
     });
 
     const reply = completion.choices[0].message.content;
@@ -627,18 +726,24 @@ app.post("/api/chat/message", async (req, res) => {
         const leadData = {
           ...extracted,
           project_type: extracted.projectType,
-          lead_score: scoreLead(extracted),
+          lead_score: scoreLead({ ...extracted, project_type: extracted.projectType }),
           session_id: sessionId,
         };
         const leadInsert = await query(
-          `INSERT INTO leads (session_id, phone, email, project_type, budget, lead_score)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+          `INSERT INTO leads
+             (session_id, name, phone, email, project_type, project_size, budget, timeline, location, lead_score)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id`,
           [
             sessionId,
+            leadData.name || null,
             leadData.phone,
             leadData.email,
             leadData.project_type,
+            leadData.projectSize || null,
             leadData.budget,
+            leadData.timeline || null,
+            leadData.location || null,
             leadData.lead_score,
           ]
         );
