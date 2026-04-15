@@ -72,7 +72,7 @@ pool.on("error", (err) => {
 // Auto-retry query once on connection errors (handles Neon wake-up drops)
 async function query(text, params) {
   try {
-    return await query(text, params);
+    return await pool.query(text, params);
   } catch (err) {
     const retryable = ["ETIMEDOUT", "ECONNRESET", "ENOTFOUND", "EPIPE", "57P01"];
     const shouldRetry =
@@ -85,7 +85,7 @@ async function query(text, params) {
     if (shouldRetry) {
       console.log("DB query retry after:", err.code || err.message);
       await new Promise((r) => setTimeout(r, 1500));
-      return await query(text, params);
+      return await pool.query(text, params);
     }
     throw err;
   }
