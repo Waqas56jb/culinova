@@ -526,6 +526,7 @@ function scoreLead(lead) {
 // ─── Chat Session: Start ──────────────────────────────────────────────────────
 app.post("/api/chat/session", async (req, res) => {
   try {
+    await ensureDb();
     const sessionId = uuidv4();
     const visitorIp =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress;
@@ -553,6 +554,7 @@ app.post("/api/chat/session", async (req, res) => {
 // ─── Chat: Send Message ────────────────────────────────────────────────────────
 app.post("/api/chat/message", async (req, res) => {
   try {
+    await ensureDb();
     const { sessionId, message } = req.body;
     if (!sessionId || !message) {
       return res.status(400).json({ error: "sessionId and message required" });
@@ -706,6 +708,7 @@ app.post("/api/chat/time", async (req, res) => {
 // ─── Lead: Submit Full Lead Form ──────────────────────────────────────────────
 app.post("/api/leads", async (req, res) => {
   try {
+    await ensureDb();
     const {
       sessionId,
       name,
@@ -776,6 +779,7 @@ app.post("/api/leads", async (req, res) => {
 // ─── Admin: Login ─────────────────────────────────────────────────────────────
 app.post("/api/admin/login", async (req, res) => {
   try {
+    await ensureDb();
     const { email, password } = req.body;
     const result = await query("SELECT * FROM admins WHERE email = $1", [
       email,
@@ -827,6 +831,7 @@ app.post("/api/admin/change-password", authenticateAdmin, async (req, res) => {
 // ─── Admin: Request Password Reset ────────────────────────────────────────────
 app.post("/api/admin/reset-password-request", async (req, res) => {
   try {
+    await ensureDb();
     const { email } = req.body;
     const result = await query("SELECT * FROM admins WHERE email = $1", [
       email,
@@ -859,6 +864,7 @@ app.post("/api/admin/reset-password-request", async (req, res) => {
 // ─── Admin: Reset Password with Token ─────────────────────────────────────────
 app.post("/api/admin/reset-password", async (req, res) => {
   try {
+    await ensureDb();
     const { token, newPassword } = req.body;
     const result = await query(
       "SELECT * FROM admins WHERE reset_token = $1 AND reset_token_expires > NOW()",
@@ -881,6 +887,7 @@ app.post("/api/admin/reset-password", async (req, res) => {
 // ─── Admin: Dashboard Stats ────────────────────────────────────────────────────
 app.get("/api/admin/dashboard", authenticateAdmin, async (req, res) => {
   try {
+    await ensureDb();
     const [
       totalLeads,
       hotLeads,
@@ -970,6 +977,7 @@ app.get("/api/admin/dashboard", authenticateAdmin, async (req, res) => {
 // ─── Admin: Leads ─────────────────────────────────────────────────────────────
 app.get("/api/admin/leads", authenticateAdmin, async (req, res) => {
   try {
+    await ensureDb();
     const { page = 1, limit = 20, score, status, search } = req.query;
     const offset = (page - 1) * limit;
 
@@ -1078,6 +1086,7 @@ app.get("/api/admin/sessions/:sessionId/messages", authenticateAdmin, async (req
 // ─── Admin: Analytics ─────────────────────────────────────────────────────────
 app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
   try {
+    await ensureDb();
     const { range = "30" } = req.query;
 
     const [
@@ -1152,6 +1161,7 @@ app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
 // ─── Admin: Knowledge Base CRUD ───────────────────────────────────────────────
 app.get("/api/admin/knowledge-base", authenticateAdmin, async (req, res) => {
   try {
+    await ensureDb();
     const result = await query(
       "SELECT * FROM knowledge_base ORDER BY id ASC"
     );
