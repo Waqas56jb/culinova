@@ -77,12 +77,7 @@ export default function Leads() {
   return (
     <div className="fade-in">
       {/* Header */}
-      <div
-        style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          marginBottom: 24, flexWrap: "wrap", gap: 12,
-        }}
-      >
+      <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>Leads Management</h2>
           <p style={{ fontSize: 13, color: "#888" }}>{total} total leads captured</p>
@@ -93,25 +88,19 @@ export default function Leads() {
       </div>
 
       {/* Filters */}
-      <div
-        className="card"
-        style={{
-          display: "flex", gap: 14, flexWrap: "wrap",
-          alignItems: "center", marginBottom: 20, padding: "16px 20px",
-        }}
-      >
+      <div className="card filter-row" style={{ marginBottom: 20, padding: "14px 16px" }}>
         <input
           className="form-input"
           placeholder="🔍 Search name, phone, email..."
           value={filter.search}
           onChange={(e) => setFilter({ ...filter, search: e.target.value })}
-          style={{ maxWidth: 280 }}
+          style={{ flex: 2, minWidth: 160 }}
         />
         <select
           className="form-input"
           value={filter.score}
           onChange={(e) => setFilter({ ...filter, score: e.target.value })}
-          style={{ maxWidth: 160 }}
+          style={{ flex: 1, minWidth: 120 }}
         >
           <option value="">All Scores</option>
           <option value="hot">🔥 Hot</option>
@@ -122,7 +111,7 @@ export default function Leads() {
           className="form-input"
           value={filter.status}
           onChange={(e) => setFilter({ ...filter, status: e.target.value })}
-          style={{ maxWidth: 160 }}
+          style={{ flex: 1, minWidth: 120 }}
         >
           <option value="">All Status</option>
           <option value="new">New</option>
@@ -133,6 +122,7 @@ export default function Leads() {
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => { setFilter({ score: "", status: "", search: "" }); setPage(1); }}
+          style={{ flexShrink: 0 }}
         >
           Reset
         </button>
@@ -371,11 +361,11 @@ function Modal({ title, children, onClose }) {
     >
       <div
         style={{
-          background: "#fff", borderRadius: 16, padding: "28px 32px",
+          background: "#fff", borderRadius: 16, padding: "clamp(16px, 4vw, 28px) clamp(16px, 4vw, 32px)",
           width: "100%", maxWidth: 520,
           boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
           animation: "fadeIn .2s ease",
-          maxHeight: "90vh", overflowY: "auto",
+          maxHeight: "92dvh", overflowY: "auto",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>

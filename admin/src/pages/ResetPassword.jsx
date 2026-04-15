@@ -58,7 +58,8 @@ export default function ResetPassword() {
     >
       <div
         style={{
-          background: "#fff", borderRadius: 20, padding: "48px 44px",
+          background: "#fff", borderRadius: 20,
+          padding: "clamp(24px,6vw,48px) clamp(20px,6vw,44px)",
           width: "100%", maxWidth: 440, boxShadow: "0 30px 80px rgba(0,0,0,0.4)",
         }}
       >

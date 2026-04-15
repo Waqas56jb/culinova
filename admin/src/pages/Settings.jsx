@@ -142,7 +142,8 @@ export default function Settings() {
             <div
               key={item.label}
               style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
+                display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                flexWrap: "wrap", gap: 8,
                 padding: "12px 16px", background: "#f9f9f9", borderRadius: 8,
               }}
             >

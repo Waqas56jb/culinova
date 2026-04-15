@@ -79,7 +79,7 @@ export default function KnowledgeBase() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>Knowledge Base</h2>
           <p style={{ fontSize: 13, color: "#888" }}>
@@ -207,10 +207,11 @@ export default function KnowledgeBase() {
         >
           <div
             style={{
-              background: "#fff", borderRadius: 16, padding: "28px 32px",
+              background: "#fff", borderRadius: 16,
+              padding: "clamp(16px,4vw,28px) clamp(16px,4vw,32px)",
               width: "100%", maxWidth: 560,
               boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-              maxHeight: "90vh", overflowY: "auto",
+              maxHeight: "92dvh", overflowY: "auto",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -277,7 +278,7 @@ export default function KnowledgeBase() {
             zIndex: 1000, padding: 20,
           }}
         >
-          <div style={{ background: "#fff", borderRadius: 12, padding: "28px 32px", maxWidth: 400, width: "100%" }}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: "clamp(16px,4vw,28px) clamp(16px,4vw,32px)", maxWidth: 400, width: "100%" }}>
             <h3 style={{ marginBottom: 16 }}>Delete Entry</h3>
             <p style={{ color: "#555", marginBottom: 24 }}>Are you sure? This cannot be undone.</p>
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>

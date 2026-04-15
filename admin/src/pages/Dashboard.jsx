@@ -82,11 +82,8 @@ export default function Dashboard() {
     <div className="fade-in">
       {/* ── Stat Cards ── */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 20, marginBottom: 28,
-        }}
+        className="stat-grid"
+        style={{ marginBottom: 28 }}
       >
         {statCards.map((card) => (
           <div
@@ -128,11 +125,8 @@ export default function Dashboard() {
 
       {/* ── Charts Row ── */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-          gap: 20, marginBottom: 28,
-        }}
+        className="chart-grid-2"
+        style={{ marginBottom: 28 }}
       >
         {/* Sessions Trend */}
         <div className="card">

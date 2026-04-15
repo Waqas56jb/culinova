@@ -120,11 +120,8 @@ export default function Analytics() {
 
       {/* KPI Cards */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 16, marginBottom: 24,
-        }}
+        className="stat-grid"
+        style={{ marginBottom: 24 }}
       >
         {kpiCards.map((k) => (
           <div key={k.label} className="card" style={{ padding: "20px 24px" }}>
@@ -177,7 +174,7 @@ export default function Analytics() {
       </div>
 
       {/* 2-col row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20, marginBottom: 20 }}>
+      <div className="chart-grid-2" style={{ marginBottom: 20 }}>
         {/* Hourly Activity */}
         <div className="card">
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Hourly Activity</h3>

@@ -173,6 +173,7 @@ export default function ChatWidget() {
     <>
       {/* ── Chat Bubble ── */}
       <div
+        className="chat-bubble"
         style={{
           position: "fixed", bottom: 28, right: 28, zIndex: 9999,
           display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12,
@@ -217,6 +218,7 @@ export default function ChatWidget() {
 
       {/* ── Chat Window ── */}
       <div
+        className="chat-window"
         style={{
           position: "fixed", bottom: 106, right: 28, zIndex: 9998,
           width: "clamp(320px, 90vw, 400px)",
@@ -545,7 +547,18 @@ export default function ChatWidget() {
           50% { box-shadow: 0 4px 40px rgba(201,168,76,0.8); transform: scale(1.05); }
         }
         @media (max-width: 480px) {
-          .chat-window { bottom: 0 !important; right: 0 !important; width: 100vw !important; height: 90vh !important; border-radius: 20px 20px 0 0 !important; }
+          .chat-window {
+            bottom: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            height: 92dvh !important;
+            border-radius: 20px 20px 0 0 !important;
+            transform-origin: bottom center !important;
+          }
+          .chat-bubble {
+            bottom: 16px !important;
+            right: 16px !important;
+          }
         }
       `}</style>
     </>
