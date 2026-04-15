@@ -191,7 +191,7 @@ export default function AdminLayout({ children }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <a
-              href="http://localhost:3000"
+              href={import.meta.env.VITE_CLIENT_URL || "http://localhost:3000"}
               target="_blank"
               rel="noopener noreferrer"
               style={{

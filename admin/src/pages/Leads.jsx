@@ -68,7 +68,8 @@ export default function Leads() {
 
   const exportCSV = () => {
     const token = localStorage.getItem("culinova_admin_token");
-    window.open(`/api/admin/leads/export?token=${token}`, "_blank");
+    const API_URL = `${import.meta.env.VITE_API_URL || ""}/api`;
+    window.open(`${API_URL}/admin/leads/export?token=${token}`, "_blank");
   };
 
   const totalPages = Math.ceil(total / LIMIT);

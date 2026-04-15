@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-const API = "/api";
+const API = `${import.meta.env.VITE_API_URL || ""}/api`;
 const GOLD = "#C9A84C";
 const DARK = "#1a1a1a";
 

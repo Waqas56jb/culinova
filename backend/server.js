@@ -14,12 +14,29 @@ const PORT = process.env.PORT || 5000;
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      process.env.ADMIN_URL || "http://localhost:3001",
-      "https://culinova.sa",
-      "*",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+      const allowed = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://culinova.sa",
+        "https://www.culinova.sa",
+        process.env.CLIENT_URL,
+        process.env.ADMIN_URL,
+        process.env.CLIENT_PROD_URL,
+        process.env.ADMIN_PROD_URL,
+      ].filter(Boolean);
+      // Allow any vercel.app subdomain
+      if (
+        allowed.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".culinova.sa")
+      ) {
+        return callback(null, true);
+      }
+      callback(null, true); // open during development — tighten in production
+    },
     credentials: true,
   })
 );

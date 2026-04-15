@@ -13,7 +13,8 @@ export default function ResetPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await fetch("/api/admin/reset-password-request", {
+      const API_URL = `${import.meta.env.VITE_API_URL || ""}/api`;
+      await fetch(`${API_URL}/admin/reset-password-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -30,7 +31,8 @@ export default function ResetPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/reset-password", {
+      const API_URL = `${import.meta.env.VITE_API_URL || ""}/api`;
+      const res = await fetch(`${API_URL}/admin/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, newPassword }),
