@@ -234,124 +234,117 @@ const authenticateAdmin = (req, res, next) => {
 
 // ─── Database Initialization ──────────────────────────────────────────────────
 async function initDatabase() {
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS admins (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        reset_token VARCHAR(255),
-        reset_token_expires TIMESTAMPTZ,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
+  // Use pool directly (one statement at a time — required for Neon PgBouncer pooler)
+  const stmts = [
+    `CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      reset_token VARCHAR(255),
+      reset_token_expires TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255),
+      name VARCHAR(255),
+      email VARCHAR(255),
+      phone VARCHAR(50),
+      company VARCHAR(255),
+      location VARCHAR(255),
+      project_type VARCHAR(100),
+      project_size VARCHAR(100),
+      budget VARCHAR(100),
+      timeline VARCHAR(100),
+      quality_preference VARCHAR(50),
+      message TEXT,
+      lead_score VARCHAR(20) DEFAULT 'cold',
+      status VARCHAR(50) DEFAULT 'new',
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS chat_sessions (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255) UNIQUE NOT NULL,
+      visitor_ip VARCHAR(100),
+      user_agent TEXT,
+      language VARCHAR(10) DEFAULT 'en',
+      started_at TIMESTAMPTZ DEFAULT NOW(),
+      last_active TIMESTAMPTZ DEFAULT NOW(),
+      message_count INTEGER DEFAULT 0,
+      time_spent_seconds INTEGER DEFAULT 0,
+      lead_captured BOOLEAN DEFAULT FALSE,
+      country VARCHAR(100) DEFAULT 'Saudi Arabia'
+    )`,
+    `CREATE TABLE IF NOT EXISTS chat_messages (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255) NOT NULL,
+      role VARCHAR(20) NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS knowledge_base (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      category VARCHAR(100) DEFAULT 'general',
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS visitor_analytics (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255),
+      event_type VARCHAR(100),
+      event_data JSONB DEFAULT '{}',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_leads_score ON leads(lead_score)`,
+    `CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`,
+    `CREATE INDEX IF NOT EXISTS idx_analytics_event ON visitor_analytics(event_type)`,
+    `CREATE INDEX IF NOT EXISTS idx_sessions_started ON chat_sessions(started_at)`,
+  ];
 
-      CREATE TABLE IF NOT EXISTS leads (
-        id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255),
-        name VARCHAR(255),
-        email VARCHAR(255),
-        phone VARCHAR(50),
-        company VARCHAR(255),
-        location VARCHAR(255),
-        project_type VARCHAR(100),
-        project_size VARCHAR(100),
-        budget VARCHAR(100),
-        timeline VARCHAR(100),
-        quality_preference VARCHAR(50),
-        message TEXT,
-        lead_score VARCHAR(20) DEFAULT 'cold',
-        status VARCHAR(50) DEFAULT 'new',
-        notes TEXT,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS chat_sessions (
-        id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255) UNIQUE NOT NULL,
-        visitor_ip VARCHAR(100),
-        user_agent TEXT,
-        language VARCHAR(10) DEFAULT 'en',
-        started_at TIMESTAMPTZ DEFAULT NOW(),
-        last_active TIMESTAMPTZ DEFAULT NOW(),
-        message_count INTEGER DEFAULT 0,
-        time_spent_seconds INTEGER DEFAULT 0,
-        lead_captured BOOLEAN DEFAULT FALSE,
-        country VARCHAR(100) DEFAULT 'Saudi Arabia'
-      );
-
-      CREATE TABLE IF NOT EXISTS chat_messages (
-        id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255) NOT NULL,
-        role VARCHAR(20) NOT NULL,
-        content TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS knowledge_base (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        content TEXT NOT NULL,
-        category VARCHAR(100) DEFAULT 'general',
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS visitor_analytics (
-        id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255),
-        event_type VARCHAR(100),
-        event_data JSONB DEFAULT '{}',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
-      CREATE INDEX IF NOT EXISTS idx_leads_score ON leads(lead_score);
-      CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
-      CREATE INDEX IF NOT EXISTS idx_analytics_event ON visitor_analytics(event_type);
-      CREATE INDEX IF NOT EXISTS idx_sessions_started ON chat_sessions(started_at);
-    `);
-
-    // Insert default admin if not exists
-    const adminExists = await client.query(
-      "SELECT id FROM admins WHERE email = $1",
-      ["admin@culinova.sa"]
-    );
-    if (adminExists.rows.length === 0) {
-      const hash = await bcrypt.hash("Culinova@2024", 12);
-      await client.query(
-        "INSERT INTO admins (username, email, password_hash) VALUES ($1, $2, $3)",
-        ["admin", "admin@culinova.sa", hash]
-      );
-      console.log(
-        "Default admin created: admin@culinova.sa / Culinova@2024"
-      );
-    }
-
-    // Insert default knowledge base entries
-    const kbExists = await client.query(
-      "SELECT id FROM knowledge_base LIMIT 1"
-    );
-    if (kbExists.rows.length === 0) {
-      await client.query(`
-        INSERT INTO knowledge_base (title, content, category) VALUES
-        ('Company Overview', 'Culinova is a leading Saudi Arabian company with 16 years of experience in commercial kitchen design and laundry project execution. We serve hotels, restaurants, hospitals, schools, palaces, and industrial facilities across Saudi Arabia.', 'company'),
-        ('Services List', 'Free Initial Consultation, Kitchen Floor Plans, Equipment Specifications, Electrical & Plumbing Drawings, Equipment Cost Analysis, Value Engineering, Elevation Drawings, Contractor Coordination, Job Site Supervision, Laundry Project Design.', 'services'),
-        ('Contact Information', 'Phone: +966 54 848 9341 | Email: contact@culinova.sa | Location: Saudi Arabia | Hours: Sunday-Friday 09AM-09PM', 'contact'),
-        ('Price Ranges', 'Small café: 25,000-60,000 SAR | Medium restaurant: 80,000-200,000 SAR | Large hotel kitchen: 300,000-1,000,000+ SAR | Hospital kitchen: 200,000-800,000 SAR | Commercial laundry (small): 50,000-150,000 SAR | Commercial laundry (large): 200,000-600,000 SAR. All prices are estimates only.', 'pricing'),
-        ('How We Work', 'Step 1 PLAN: Free consultation to discuss project scope and requirements. Step 2 DESIGN: Create detailed floor plans and equipment specs matching your needs. Step 3 DEVELOP: Work with your architect and contractor to execute the project.', 'process')
-      `);
-    }
-
-    console.log("Database initialized successfully");
-  } catch (err) {
-    console.error("Database init error:", err.message);
-  } finally {
-    client.release();
+  for (const sql of stmts) {
+    await pool.query(sql);
   }
+
+  // Insert default admin if not exists
+  const adminExists = await pool.query(
+    "SELECT id FROM admins WHERE email = $1",
+    ["admin@culinova.sa"]
+  );
+  if (adminExists.rows.length === 0) {
+    const hash = await bcrypt.hash("Culinova@2024", 12);
+    await pool.query(
+      "INSERT INTO admins (username, email, password_hash) VALUES ($1, $2, $3)",
+      ["admin", "admin@culinova.sa", hash]
+    );
+    console.log("Default admin created: admin@culinova.sa / Culinova@2024");
+  }
+
+  // Insert default knowledge base entries
+  const kbExists = await pool.query("SELECT id FROM knowledge_base LIMIT 1");
+  if (kbExists.rows.length === 0) {
+    const kbEntries = [
+      ["Company Overview", "Culinova is a leading Saudi Arabian company with 16 years of experience in commercial kitchen design and laundry project execution. We serve hotels, restaurants, hospitals, schools, palaces, and industrial facilities across Saudi Arabia.", "company"],
+      ["Services List", "Free Initial Consultation, Kitchen Floor Plans, Equipment Specifications, Electrical & Plumbing Drawings, Equipment Cost Analysis, Value Engineering, Elevation Drawings, Contractor Coordination, Job Site Supervision, Laundry Project Design.", "services"],
+      ["Contact Information", "Phone: +966 54 848 9341 | Email: contact@culinova.sa | Location: Saudi Arabia | Hours: Sunday-Friday 09AM-09PM", "contact"],
+      ["Price Ranges", "Small café: 25,000-60,000 SAR | Medium restaurant: 80,000-200,000 SAR | Large hotel kitchen: 300,000-1,000,000+ SAR | Hospital kitchen: 200,000-800,000 SAR | Commercial laundry (small): 50,000-150,000 SAR | Commercial laundry (large): 200,000-600,000 SAR. All prices are estimates only.", "pricing"],
+      ["How We Work", "Step 1 PLAN: Free consultation to discuss project scope and requirements. Step 2 DESIGN: Create detailed floor plans and equipment specs matching your needs. Step 3 DEVELOP: Work with your architect and contractor to execute the project.", "process"],
+    ];
+    for (const [title, content, category] of kbEntries) {
+      await pool.query(
+        "INSERT INTO knowledge_base (title, content, category) VALUES ($1, $2, $3)",
+        [title, content, category]
+      );
+    }
+  }
+
+  console.log("✅ Database initialized successfully");
 }
 
 // ─── Helper: Send Lead Email ───────────────────────────────────────────────────
@@ -1271,22 +1264,19 @@ if (process.env.VERCEL !== "1") {
 let dbReady = false;
 async function ensureDb() {
   if (dbReady) return;
-  let retries = 3;
-  while (retries > 0) {
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       await initDatabase();
       dbReady = true;
       return;
     } catch (err) {
-      retries--;
-      if (retries === 0) {
-        console.error("DB init failed:", err.message);
-      } else {
-        console.log(`DB retry... (${retries} left)`);
-        await new Promise((r) => setTimeout(r, 2000));
-      }
+      lastErr = err;
+      console.error(`DB init attempt ${attempt} failed:`, err.message);
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
     }
   }
+  throw lastErr; // propagate so the API route returns 500 with real error
 }
 
 // ─── Health check also triggers DB init ───────────────────────────────────────
